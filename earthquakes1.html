@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Recent Earthquakes</title>
+
+
+
+    <style>
+      /* Add styles for highlighting potentially hazardous asteroids */
+
+      /* Add styles for header */
+      .header_ast {
+        display: flex;
+        align-items: center;
+      }
+
+      .live-badge {
+        background-color: red;
+        color: white;
+        font-family: Arial, sans-serif;
+        font-weight: bold;
+        padding: 5px 10px;
+        margin-left: 10px;
+        animation: blink 1s linear infinite;
+
+        border-radius: 10px; /* added */
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+    </style>
+
+
+</head>
+<body>
+   <div class="header_ast">
+      <h1>Recent Earthquakes</h1>
+      <span class="live-badge">ÉLŐ</span> <!-- added -->
+    </div>
+    <table id="earthquakes">
+        <tr>
+            <th>Location</th>
+            <th>Magnitude</th>
+            <th>Time</th>
+        </tr>
+    </table>
+
+    <script type="text/javascript">
+        // URL for the USGS earthquake API
+        const url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson";
+
+        // Function to fetch data from the USGS earthquake API
+        async function getEarthquakeData() {
+            const response = await fetch(url);
+            const data = await response.json();
+            return data.features;
+        }
+
+        // Function to populate the table with earthquake data
+
+async function populateTable() {
+    const table = document.getElementById("earthquakes");
+    const earthquakes = await getEarthquakeData();
+    
+    for (const earthquake of earthquakes) {
+        const row = document.createElement("tr");
+        // Translate the location to Hungarian
+        const location = translateLocation(earthquake.properties.place);
+        // Round the magnitude to 1 decimal place
+        const magnitude = Math.round(earthquake.properties.mag * 10) / 10;
+        // Create a new Date object and format it using the Hungarian locale
+        const date = new Date(earthquake.properties.time);
+        const formattedDate = date.toLocaleString('hu-HU');
+        
+        row.innerHTML = `
+            <td>${location}</td>
+            <td>${magnitude}</td>
+            <td>${formattedDate}</td>`;
+        
+        // Change the font color to red if the magnitude is above 4
+        if (magnitude > 4) {
+            row.style.color = 'red';
+            
+            // Add the "blink" class if the magnitude is above 5
+            if (magnitude > 5) {
+                row.classList.add('blink');
+            }
+        }
+        
+        table.appendChild(row);
+    }
+}
+
+// Add CSS for blinking text
+const style = document.createElement('style');
+style.innerHTML = `
+@keyframes blink {
+    from {opacity: 1;}
+    to {opacity: 0;}
+}
+
+.blink {
+    animation: blink 1s linear infinite;
+}
+`;
+document.head.appendChild(style);
+
+// Function to translate a location string to Hungarian
+function translateLocation(location) {
+    // Translation dictionary
+    const translations = {
+        'N': 'É',
+        'S': 'D',
+        'E': 'K',
+        'W': 'Ny',
+        'NE': 'ÉK',
+        'NW': 'ÉNy',
+        'SE': 'DK',
+        'SW': 'DNy'
+    };
+    
+    // Replace all occurrences of compass directions with their Hungarian translations
+    for (const [key, value] of Object.entries(translations)) {
+      location = location.replace(new RegExp(key, "g"), value);
+    }
+    
+    // Remove the word "of" from the location string
+    location = location.replace(/of/gi, '');
+    
+    return location;
+} // Populate the table when the page loads
+        window.onload = populateTable;
+    </script>
+
+</body>
+</html>
