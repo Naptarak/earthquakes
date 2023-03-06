@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Recent Earthquakes</title>
+
+
+
+    <style>
+      /* Add styles for highlighting potentially hazardous asteroids */
+
+      /* Add styles for header */
+      .header_ast {
+        display: flex;
+        align-items: center;
+      }
+
+      .live-badge {
+        background-color: red;
+        color: white;
+        font-family: Arial, sans-serif;
+        font-weight: bold;
+        padding: 5px 10px;
+        margin-left: 10px;
+        animation: blink 1s linear infinite;
+
+        border-radius: 10px; /* added */
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+
+
+    </style>
+
+
+</head>
+<body>
+   <div class="header_ast">
+      <h1>Recent Earthquakes</h1>
+      <span class="live-badge">ÉLŐ</span> <!-- added -->
+    </div>
+    <table id="earthquakes">
+        <tr>
+            <th>Location</th>
+            <th>Magnitude</th>
+            <th>Time</th>
+        </tr>
+    </table>
+
+    <script type="text/javascript">
+        // URL for the USGS earthquake API
+        const url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson";
+
+        // Function to fetch data from the USGS earthquake API
+        async function getEarthquakeData() {
+            const response = await fetch(url);
+            const data = await response.json();
+            return data.features;
+        }
+
+        // Function to populate the table with earthquake data
+
+
+
+
+let mostRecentEarthquakeTime;
+
+async function populateTable() {
+    const table = document.getElementById("earthquakes");
+    const earthquakes = await getEarthquakeData();
+
+    // Update mostRecentEarthquakeTime with time of most recent earthquake
+    mostRecentEarthquakeTime = earthquakes[0].properties.time;
+
+
+    // Check if timer row already exists
+    let timerRow = table.querySelector(".timer-row");
+    
+    if (!timerRow) {
+        // Create a new tr element for the timer row
+        timerRow = document.createElement("tr");
+        timerRow.classList.add("timer-row");
+        timerRow.style.fontSize = "24px";
+        timerRow.style.fontWeight = "bold";
+
+        // Create a new td element for the timer cell
+        const timerCell = document.createElement("td");
+        timerCell.colSpan = 3;
+        
+        // Append the timer cell to the timer row
+        timerRow.appendChild(timerCell);
+
+       // Insert the timer row before the first row of the table
+       table.insertBefore(timerRow, table.firstChild);
+   }
+
+
+
+let intervalId;
+
+function updateTimer() {
+    // Calculate the time difference in seconds between now and the most recent earthquake
+    const timeDiffInSeconds = Math.floor((Date.now() - mostRecentEarthquakeTime) / 1000);
+
+    const minutes = Math.floor(timeDiffInSeconds / 60);
+    const seconds = timeDiffInSeconds % 60;
+    
+    // Update text content of timer cell with formatted time string
+    let formattedTimeString;
+    if (minutes > 0) {
+        formattedTimeString = `${minutes}m ${seconds}s`;
+    } else {
+        formattedTimeString = `${seconds}s`;
+    }
+    
+    timerRow.querySelector("td").textContent = `${formattedTimeString} since last earthquake`;
+}
+
+
+
+intervalId = setInterval(updateTimer, 1000);
+
+// Clear existing rows in table except for timer row
+Array.from(table.rows).forEach((row) => {
+    if (!row.classList.contains("timer-row")) {
+        row.remove();
+    }
+});
+
+
+    for (const earthquake of earthquakes) {
+        const row = document.createElement("tr");
+        // Translate the location to Hungarian
+        const location = translateLocation(earthquake.properties.place);
+        // Round the magnitude to 1 decimal place
+        const magnitude = Math.round(earthquake.properties.mag * 10) / 10;
+        // Create a new Date object and format it using the Hungarian locale
+        const date = new Date(earthquake.properties.time);
+        const formattedDate = date.toLocaleString('hu-HU');
+        
+        // Create Google Maps URL for earthquake location with zoom level set to 8
+const mapsUrl = `https://www.google.com/maps/@?api=1&map_action=map&center=${earthquake.geometry.coordinates[1]},${earthquake.geometry.coordinates[0]}&zoom=7`;
+
+        row.innerHTML = `
+            <td><a href="${mapsUrl}" target="_blank">${location}</a></td>
+            <td>${magnitude}</td>
+            <td>${formattedDate}</td>`;
+
+        // Change the font color to red if the magnitude is above 4
+        if (magnitude > 4) {
+            row.style.color = 'red';
+            
+            // Add the "blink" class if the magnitude is above 5
+            if (magnitude > 5) {
+                row.classList.add('blink');
+            }
+        }
+        
+        table.appendChild(row);
+    }
+}
+
+
+// Add CSS for blinking text
+const style = document.createElement('style');
+style.innerHTML = `
+@keyframes blink {
+    from {opacity: 1;}
+    to {opacity: 0;}
+}
+
+.blink {
+    animation: blink 1s linear infinite;
+}
+`;
+document.head.appendChild(style);
+
+
+
+function refreshTable() {
+    // Call populateTable every 10 seconds to refresh the data
+    setInterval(populateTable, 10000);
+}
+
+// Call refreshTable once to start refreshing the table
+refreshTable();
+
+
+
+
+// Function to translate a location string to Hungarian
+function translateLocation(location) {
+    // Translation dictionary
+    const translations = {
+        'N': 'É',
+        'S': 'D',
+        'E': 'K',
+        'W': 'Ny',
+        'NE': 'ÉK',
+        'NW': 'ÉNy',
+        'SE': 'DK',
+        'SW': 'DNy'
+    };
+    
+    // Replace all occurrences of compass directions with their Hungarian translations
+    for (const [key, value] of Object.entries(translations)) {
+      location = location.replace(new RegExp(key, "g"), value);
+    }
+    
+    // Remove the word "of" from the location string
+    location = location.replace(/of/gi, '');
+    
+    return location;
+} // Populate the table when the page loads
+        window.onload = populateTable;
+
+
+    </script>
+
+</body>
+</html>
